@@ -1,41 +1,30 @@
-﻿const employeeId = "DEMO-USER";
 let isSubmitting = false;
 let html5QrCode;
 
 const statusEl = document.getElementById("status");
 const restartBtn = document.getElementById("restart");
 
-function mockCheckinApi(payload) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        message: `✅ ${payload.employee_id} 報到成功`
-      });
-    }, 1000);
-  });
-}
-
 function onScanSuccess(decodedText) {
   if (isSubmitting) return;
   isSubmitting = true;
 
-  statusEl.textContent = "送出報到中...";
-  statusEl.className = "status";
+  html5QrCode.stop(); // 停止掃描
 
-  html5QrCode.stop();
+  // QR Code 內容就是員工名字
+  const employeeName = decodedText.trim();
 
-  mockCheckinApi({
-    employee_id: employeeId,
-    checkin_code: decodedText
-  })
-  .then(res => {
-    statusEl.textContent = res.message;
-    statusEl.classList.add("success");
-    restartBtn.hidden = false;
-  });
+  if (employeeName) {
+    statusEl.textContent = `${employeeName} 打卡完成`;
+    statusEl.className = "status success";
+  } else {
+    statusEl.textContent = "掃描失敗，請重試";
+    statusEl.className = "status error";
+  }
+
+  restartBtn.hidden = false;
 }
 
+// 初始化掃描器
 html5QrCode = new Html5Qrcode("reader");
 html5QrCode.start(
   { facingMode: "environment" },
@@ -43,6 +32,7 @@ html5QrCode.start(
   onScanSuccess
 );
 
+// 重新掃描按鈕
 restartBtn.onclick = () => {
   isSubmitting = false;
   restartBtn.hidden = true;

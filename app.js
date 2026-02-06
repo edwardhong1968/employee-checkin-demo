@@ -87,6 +87,31 @@ function saveToExcel(employeeId) {
   link.click();
 }
 
+function downloadExcel() {
+  const records = JSON.parse(localStorage.getItem("checkins") || "[]");
+
+  if (records.length === 0) {
+    alert("目前沒有打卡紀錄");
+    return;
+  }
+
+  let csv = "Employee ID,Check-in Time\n";
+  records.forEach(r => {
+    csv += `${r.employeeId},${r.time}\n`;
+  });
+
+  // 防止 Excel 中文亂碼
+  const blob = new Blob(
+    ["\uFEFF" + csv],
+    { type: "text/csv;charset=utf-8;" }
+  );
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "checkin_records.csv";
+  link.click();
+}
+
 // 初始化掃描器
 html5QrCode = new Html5Qrcode("reader");
 html5QrCode.start(
@@ -108,6 +133,7 @@ restartBtn.onclick = () => {
     onScanSuccess
   );
 };
+
 
 
 

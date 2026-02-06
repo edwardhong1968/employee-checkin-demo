@@ -45,33 +45,41 @@ function onScanSuccess(decodedText) {
 function saveToExcel(employeeId) {
   const now = new Date();
 
-  // 1. 取出既有紀錄
+  // 1. 取得既有紀錄
   const records = JSON.parse(localStorage.getItem("checkins") || "[]");
 
-  // 2. 新增一筆
+  // 2. 新增一筆（同時存原始時間，方便排序）
   records.push({
     employeeId: employeeId,
-    time: now.toLocaleString()
+    time: now.toLocaleString(),   // 顯示用
+    timestamp: now.getTime()      // 排序用
   });
 
-  // 3. 依員工編號排序（數字或字串都可）
+  // 3. 依「編號 → 時間」排序
   records.sort((a, b) => {
-    return a.employeeId.localeCompare(b.employeeId, undefined, {
-      numeric: true,
-      sensitivity: "base"
-    });
+    // 先比員工編號
+    const idCompare = a.employeeId.localeCompare(
+      b.employeeId,
+      undefined,
+      { numeric: true, sensitivity: "base" }
+    );
+
+    if (idCompare !== 0) return idCompare;
+
+    // 同一員工，再比時間
+    return a.timestamp - b.timestamp;
   });
 
   // 4. 存回 localStorage
   localStorage.setItem("checkins", JSON.stringify(records));
 
-  // 5. 產生 CSV
+  // 5. 產生 CSV（Excel 可直接開）
   let csv = "Employee ID,Check-in Time\n";
   records.forEach(r => {
     csv += `${r.employeeId},${r.time}\n`;
   });
 
-  // 6. 下載檔案
+  // 6. 下載
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -100,5 +108,6 @@ restartBtn.onclick = () => {
     onScanSuccess
   );
 };
+
 
 

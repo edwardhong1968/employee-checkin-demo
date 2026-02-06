@@ -4,16 +4,14 @@
   <meta charset="UTF-8">
   <title>員工打卡 Demo（每日紀錄版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; margin-bottom: 80px; }
     .status { margin-top: 10px; padding: 5px; border-radius: 5px; }
     .success { color: green; }
     .error { color: red; }
-
-    /* 模擬打卡按鈕 */
+    #reader { width: 100%; max-width: 320px; margin: 0 auto; }
     button { margin: 5px; padding: 8px 16px; font-size: 14px; border-radius: 5px; cursor: pointer; }
-
-    /* 下載按鈕：縮小 + 置中 + 固定在底部 */
     #downloadBtn {
       display: block;
       margin: 0 auto;
@@ -28,16 +26,10 @@
 <body>
 
 <h1>📋 員工打卡 Demo（每日紀錄版）</h1>
-<p class="hint">請掃描 QR Code 或使用模擬打卡</p>
+<p class="hint">請掃描 QR Code</p>
 
 <div id="status" class="status">等待打卡...</div>
-
-<!-- 模擬打卡按鈕 -->
-<button onclick="saveToExcel('123456')">模擬周打卡 (123456)</button>
-<button onclick="saveToExcel('234567')">模擬洪打卡 (234567)</button>
-<button onclick="saveToExcel('345678')">模擬徐打卡 (345678)</button>
-<button onclick="saveToExcel('456789')">模擬蔡打卡 (456789)</button>
-<button onclick="saveToExcel('567890')">模擬李打卡 (567890)</button>
+<div id="reader"></div>
 
 <!-- 下載按鈕 -->
 <button id="downloadBtn" onclick="downloadExcel()">下載打卡紀錄</button>
@@ -121,6 +113,50 @@ function downloadExcel() {
   link.download = `checkin_records_${today}.csv`;
   link.click();
 }
+
+// --- QR Code 掃描 ---
+let html5QrCode = new Html5Qrcode("reader");
+let isSubmitting = false;
+
+function onScanSuccess(decodedText) {
+  if (isSubmitting) return;
+  isSubmitting = true;
+
+  const input = decodedText.trim();
+  let employeeName;
+
+  if (employeeMap[input]) {
+    employeeName = employeeMap[input];
+  } else if (input.length > 0) {
+    employeeName = input;
+  }
+
+  if (employeeName) {
+    saveToExcel(input); // 自動儲存
+  } else {
+    statusEl.textContent = "未知員工，請重試";
+    statusEl.className = "status error";
+  }
+
+  // 停止掃描 3 秒後重新啟動
+  html5QrCode.stop().then(() => {
+    setTimeout(() => {
+      isSubmitting = false;
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 220 },
+        onScanSuccess
+      );
+    }, 3000);
+  });
+}
+
+// 啟動掃描
+html5QrCode.start(
+  { facingMode: "environment" },
+  { fps: 10, qrbox: 220 },
+  onScanSuccess
+);
 </script>
 
 </body>

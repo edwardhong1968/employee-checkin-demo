@@ -38,3 +38,23 @@ button {
   color: white;
   font-size: 16px;
 }
+
+/* 將所有按鈕統一小尺寸 */
+button {
+  margin: 5px;
+  padding: 8px 16px; /* 縮小按鈕 */
+  font-size: 14px;   /* 字體縮小 */
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* 將下載按鈕單獨置中、固定在底部 */
+#downloadBtn {
+  display: block;
+  margin: 20px auto;  /* 自動左右置中 */
+  position: fixed;
+  bottom: 20px;       /* 距離底部 20px */
+  left: 0;
+  right: 0;
+  width: 160px;       /* 固定寬度，可微調 */
+}

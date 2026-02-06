@@ -42,6 +42,43 @@ function onScanSuccess(decodedText) {
   restartBtn.hidden = false;
 }
 
+function saveToExcel(employeeId) {
+  const now = new Date();
+
+  // 1. 取出既有紀錄
+  const records = JSON.parse(localStorage.getItem("checkins") || "[]");
+
+  // 2. 新增一筆
+  records.push({
+    employeeId: employeeId,
+    time: now.toLocaleString()
+  });
+
+  // 3. 依員工編號排序（數字或字串都可）
+  records.sort((a, b) => {
+    return a.employeeId.localeCompare(b.employeeId, undefined, {
+      numeric: true,
+      sensitivity: "base"
+    });
+  });
+
+  // 4. 存回 localStorage
+  localStorage.setItem("checkins", JSON.stringify(records));
+
+  // 5. 產生 CSV
+  let csv = "Employee ID,Check-in Time\n";
+  records.forEach(r => {
+    csv += `${r.employeeId},${r.time}\n`;
+  });
+
+  // 6. 下載檔案
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "checkin_records.csv";
+  link.click();
+}
+
 // 初始化掃描器
 html5QrCode = new Html5Qrcode("reader");
 html5QrCode.start(
@@ -63,4 +100,5 @@ restartBtn.onclick = () => {
     onScanSuccess
   );
 };
+
 

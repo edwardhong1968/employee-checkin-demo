@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>員工打卡 Demo（每日紀錄版）</title>
+  <title>員工打卡 Demo（手機修正版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
@@ -25,7 +25,7 @@
 </head>
 <body>
 
-<h1>📋 員工打卡 Demo（每日紀錄版）</h1>
+<h1>📋 員工打卡 Demo（手機修正版）</h1>
 <p class="hint">請掃描 QR Code</p>
 
 <div id="status" class="status">等待打卡...</div>
@@ -60,7 +60,6 @@ function saveToExcel(employeeId) {
   const now = new Date();
   const today = getToday();
 
-  // 取得現有紀錄
   let records = JSON.parse(localStorage.getItem("checkins") || "[]");
 
   // 只保留今天的紀錄
@@ -82,7 +81,6 @@ function saveToExcel(employeeId) {
     return a.timestamp - b.timestamp;
   });
 
-  // 存回 localStorage
   localStorage.setItem("checkins", JSON.stringify(records));
 }
 
@@ -102,7 +100,6 @@ function downloadExcel() {
     csv += `${r.employeeId},${r.name},${r.time}\n`;
   });
 
-  // 防止 Excel 中文亂碼
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -118,15 +115,21 @@ function onScanSuccess(decodedText) {
   if (isSubmitting) return;
   isSubmitting = true;
 
-  const input = decodedText.trim();
-  let employeeName = employeeMap[input] || "未知";
+  // 解析員工編號：只保留純數字
+  const input = (decodedText.match(/\d+/) || [])[0];
+  const employeeName = employeeMap[input];
 
-  // 先更新狀態訊息
-  statusEl.textContent = `${employeeName} 打卡完成`;
-  statusEl.className = "status success";
+  if (!input || !employeeName) {
+    statusEl.textContent = "未知員工，請重試";
+    statusEl.className = "status error";
+  } else {
+    // 儲存資料
+    saveToExcel(input);
 
-  // 儲存資料
-  saveToExcel(input);
+    // 更新狀態訊息
+    statusEl.textContent = `${employeeName} 打卡完成`;
+    statusEl.className = "status success";
+  }
 
   // 暫停掃描 3 秒，避免重複打卡
   html5QrCode.pause();

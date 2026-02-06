@@ -31,9 +31,14 @@ function onScanSuccess(decodedText) {
     employeeName = input;
   }
 
-  if (employeeName) {
-    statusEl.textContent = `${employeeName} 打卡完成`;
-    statusEl.className = "status success";
+if (employeeName) {
+  statusEl.textContent = `${employeeName} 打卡完成`;
+  statusEl.className = "status success";
+
+  // ✅ 新增：儲存打卡資料
+  saveToExcel(input);  // 或 saveToExcel(員工編號)
+}
+
   } else {
     statusEl.textContent = "未知員工，請重試";
     statusEl.className = "status error";
@@ -133,6 +138,7 @@ restartBtn.onclick = () => {
     onScanSuccess
   );
 };
+
 
 
 

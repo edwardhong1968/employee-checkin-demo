@@ -2,14 +2,27 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>員工打卡 Demo</title>
+  <title>員工打卡 Demo（每日紀錄版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
+    body { font-family: Arial, sans-serif; padding: 20px; margin-bottom: 80px; }
     .status { margin-top: 10px; padding: 5px; border-radius: 5px; }
     .success { color: green; }
     .error { color: red; }
-    button { margin: 5px; padding: 10px 20px; }
+
+    /* 模擬打卡按鈕 */
+    button { margin: 5px; padding: 8px 16px; font-size: 14px; border-radius: 5px; cursor: pointer; }
+
+    /* 下載按鈕：縮小 + 置中 + 固定在底部 */
+    #downloadBtn {
+      display: block;
+      margin: 0 auto;
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      width: 160px;
+    }
   </style>
 </head>
 <body>
@@ -112,4 +125,3 @@ function downloadExcel() {
 
 </body>
 </html>
-

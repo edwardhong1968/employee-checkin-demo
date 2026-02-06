@@ -84,10 +84,6 @@ function saveToExcel(employeeId) {
 
   // 存回 localStorage
   localStorage.setItem("checkins", JSON.stringify(records));
-
-  // 更新狀態
-  statusEl.textContent = `${records[records.length - 1].name} 打卡完成`;
-  statusEl.className = "status success";
 }
 
 // 下載 CSV
@@ -123,32 +119,21 @@ function onScanSuccess(decodedText) {
   isSubmitting = true;
 
   const input = decodedText.trim();
-  let employeeName;
+  let employeeName = employeeMap[input] || "未知";
 
-  if (employeeMap[input]) {
-    employeeName = employeeMap[input];
-  } else if (input.length > 0) {
-    employeeName = input;
-  }
+  // 先更新狀態訊息
+  statusEl.textContent = `${employeeName} 打卡完成`;
+  statusEl.className = "status success";
 
-  if (employeeName) {
-    saveToExcel(input); // 自動儲存
-  } else {
-    statusEl.textContent = "未知員工，請重試";
-    statusEl.className = "status error";
-  }
+  // 儲存資料
+  saveToExcel(input);
 
-  // 停止掃描 3 秒後重新啟動
-  html5QrCode.stop().then(() => {
-    setTimeout(() => {
-      isSubmitting = false;
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 220 },
-        onScanSuccess
-      );
-    }, 3000);
-  });
+  // 暫停掃描 3 秒，避免重複打卡
+  html5QrCode.pause();
+  setTimeout(() => {
+    isSubmitting = false;
+    html5QrCode.resume();
+  }, 3000);
 }
 
 // 啟動掃描

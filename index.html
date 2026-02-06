@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<h1>📋 員工打卡 Demo</h1>
+<h1>📋 員工打卡 Demo（每日紀錄版）</h1>
 <p class="hint">請掃描 QR Code 或使用模擬打卡</p>
 
 <div id="status" class="status">等待打卡...</div>
@@ -41,19 +41,33 @@ const employeeMap = {
   "567890": "李"
 };
 
-// 儲存打卡資料
+// 取得今天日期 (YYYY-MM-DD)
+function getToday() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// 儲存打卡資料 (每日紀錄)
 function saveToExcel(employeeId) {
   const now = new Date();
+  const today = getToday();
 
-  // 取得既有紀錄
-  const records = JSON.parse(localStorage.getItem("checkins") || "[]");
+  // 取得現有紀錄
+  let records = JSON.parse(localStorage.getItem("checkins") || "[]");
+
+  // 只保留今天的紀錄
+  records = records.filter(r => r.date === today);
 
   // 新增一筆
   records.push({
     employeeId: employeeId,
     name: employeeMap[employeeId] || "未知",
     time: now.toLocaleString(),
-    timestamp: now.getTime()
+    timestamp: now.getTime(),
+    date: today
   });
 
   // 編號 → 時間排序
@@ -73,10 +87,12 @@ function saveToExcel(employeeId) {
 
 // 下載 CSV
 function downloadExcel() {
-  const records = JSON.parse(localStorage.getItem("checkins") || "[]");
+  const today = getToday();
+  const records = JSON.parse(localStorage.getItem("checkins") || "[]")
+                    .filter(r => r.date === today);
 
   if (records.length === 0) {
-    alert("目前沒有打卡紀錄");
+    alert("今天沒有打卡紀錄");
     return;
   }
 
@@ -89,7 +105,7 @@ function downloadExcel() {
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "checkin_records.csv";
+  link.download = `checkin_records_${today}.csv`;
   link.click();
 }
 </script>

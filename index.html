@@ -1,31 +1,77 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <title>員工打卡 Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .status { margin-top: 10px; padding: 5px; border-radius: 5px; }
+    .success { color: green; }
+    .error { color: red; }
+    button { margin: 5px; padding: 10px 20px; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>📋 員工打卡 Demo</h1>
-  <p class="hint">請掃描 QR Code</p>
+<h1>📋 員工打卡 Demo</h1>
+<p class="hint">請掃描 QR Code 或使用模擬打卡</p>
 
-  <div id="reader"></div>
-  <div id="status" class="status">等待掃描...</div>
+<div id="status" class="status">等待打卡...</div>
 
-  <button id="restart" hidden>重新掃描</button>
-</div>
+<!-- 模擬打卡按鈕 -->
+<button onclick="saveToExcel('123456')">模擬周打卡 (123456)</button>
+<button onclick="saveToExcel('234567')">模擬洪打卡 (234567)</button>
+<button onclick="saveToExcel('345678')">模擬徐打卡 (345678)</button>
+<button onclick="saveToExcel('456789')">模擬蔡打卡 (456789)</button>
+<button onclick="saveToExcel('567890')">模擬李打卡 (567890)</button>
 
-<button onclick="downloadExcel()">
-  下載打卡紀錄
-</button>
+<!-- 下載按鈕 -->
+<button onclick="downloadExcel()">下載打卡紀錄</button>
 
-<script src="app.js"></script>
-  
 <script>
+const statusEl = document.getElementById("status");
+
+// 員工編號對應表
+const employeeMap = {
+  "123456": "周",
+  "234567": "洪",
+  "345678": "徐",
+  "456789": "蔡",
+  "567890": "李"
+};
+
+// 儲存打卡資料
+function saveToExcel(employeeId) {
+  const now = new Date();
+
+  // 取得既有紀錄
+  const records = JSON.parse(localStorage.getItem("checkins") || "[]");
+
+  // 新增一筆
+  records.push({
+    employeeId: employeeId,
+    name: employeeMap[employeeId] || "未知",
+    time: now.toLocaleString(),
+    timestamp: now.getTime()
+  });
+
+  // 編號 → 時間排序
+  records.sort((a, b) => {
+    const idCompare = a.employeeId.localeCompare(b.employeeId, undefined, { numeric: true, sensitivity: "base" });
+    if (idCompare !== 0) return idCompare;
+    return a.timestamp - b.timestamp;
+  });
+
+  // 存回 localStorage
+  localStorage.setItem("checkins", JSON.stringify(records));
+
+  // 更新狀態
+  statusEl.textContent = `${records[records.length - 1].name} 打卡完成`;
+  statusEl.className = "status success";
+}
+
+// 下載 CSV
 function downloadExcel() {
   const records = JSON.parse(localStorage.getItem("checkins") || "[]");
 
@@ -34,11 +80,12 @@ function downloadExcel() {
     return;
   }
 
-  let csv = "Employee ID,Check-in Time\n";
+  let csv = "Employee ID,Name,Check-in Time\n";
   records.forEach(r => {
-    csv += `${r.employeeId},${r.time}\n`;
+    csv += `${r.employeeId},${r.name},${r.time}\n`;
   });
 
+  // 防止 Excel 中文亂碼
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -49,7 +96,3 @@ function downloadExcel() {
 
 </body>
 </html>
-
-
-
-

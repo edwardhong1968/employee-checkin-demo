@@ -1,151 +1,136 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>員工打卡 Demo（手機修正版）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>員工打卡 Demo（掃描 QR Code）</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; margin-bottom: 80px; }
-    .status { margin-top: 10px; padding: 5px; border-radius: 5px; }
-    .success { color: green; }
-    .error { color: red; }
-    #reader { width: 100%; max-width: 320px; margin: 0 auto; }
-    button { margin: 5px; padding: 8px 16px; font-size: 14px; border-radius: 5px; cursor: pointer; }
-    #downloadBtn {
-      display: block;
-      margin: 0 auto;
-      position: fixed;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      width: 160px;
-    }
+    body { font-family: Arial; text-align: center; margin-top: 30px; }
+    #qrcodes, #scanner { display: flex; flex-wrap: wrap; justify-content: center; margin: 20px auto; }
+    .qr-card { margin: 10px; text-align: center; }
+    input { padding: 5px; margin: 5px; font-size: 16px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    table { margin: 20px auto; border-collapse: collapse; width: 70%; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
   </style>
 </head>
 <body>
+  <h1>員工打卡 Demo</h1>
+  <p>掃描員工 QR Code 或手動輸入姓名與工號打卡</p>
 
-<h1>📋 員工打卡 Demo（手機修正版）</h1>
-<p class="hint">請掃描 QR Code</p>
+  <!-- 員工 QR Code 列表 -->
+  <div id="qrcodes"></div>
 
-<div id="status" class="status">等待打卡...</div>
-<div id="reader"></div>
+  <!-- 手動打卡輸入 -->
+  <div>
+    <input type="text" id="name" placeholder="姓名">
+    <input type="text" id="id" placeholder="工號">
+    <button onclick="checkInManual()">手動打卡</button>
+  </div>
 
-<!-- 下載按鈕 -->
-<button id="downloadBtn" onclick="downloadExcel()">下載打卡紀錄</button>
+  <!-- 打卡紀錄表 -->
+  <table id="recordTable">
+    <thead>
+      <tr>
+        <th>姓名</th>
+        <th>工號</th>
+        <th>打卡時間</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-<script>
-const statusEl = document.getElementById("status");
+  <button onclick="downloadCSV()">下載打卡紀錄</button>
 
-// 員工編號對應表
-const employeeMap = {
-  "123456": "周",
-  "234567": "洪",
-  "345678": "徐",
-  "456789": "蔡",
-  "567890": "李"
-};
+  <!-- QRCode.js -->
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+  <!-- html5-qrcode -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
-// 取得今天日期 (YYYY-MM-DD)
-function getToday() {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+  <script>
+    // 範例員工資料
+    const employees = [
+      { name: "John", id: "001" },
+      { name: "Mary", id: "002" },
+      { name: "Peter", id: "003" }
+    ];
 
-// 儲存打卡資料 (每日紀錄)
-function saveToExcel(employeeId) {
-  const now = new Date();
-  const today = getToday();
+    // 生成員工 QR Code
+    const qrcodesDiv = document.getElementById("qrcodes");
+    employees.forEach(emp => {
+      const div = document.createElement("div");
+      div.className = "qr-card";
+      new QRCode(div, {
+        text: `${emp.name},${emp.id}`, // QR Code 內容：姓名,工號
+        width: 128,
+        height: 128
+      });
+      const label = document.createElement("p");
+      label.innerText = `${emp.name} (${emp.id})`;
+      div.appendChild(label);
+      qrcodesDiv.appendChild(div);
+    });
 
-  let records = JSON.parse(localStorage.getItem("checkins") || "[]");
+    // 打卡紀錄
+    const records = [];
 
-  // 只保留今天的紀錄
-  records = records.filter(r => r.date === today);
+    // 手動打卡
+    function checkInManual() {
+      const name = document.getElementById("name").value.trim();
+      const id = document.getElementById("id").value.trim();
+      if (!name || !id) { alert("請輸入姓名與工號！"); return; }
+      const time = new Date().toLocaleString();
+      addRecord(name, id, time);
+      document.getElementById("name").value = "";
+      document.getElementById("id").value = "";
+    }
 
-  // 新增一筆
-  records.push({
-    employeeId: employeeId,
-    name: employeeMap[employeeId] || "未知",
-    time: now.toLocaleString(),
-    timestamp: now.getTime(),
-    date: today
-  });
+    // 新增紀錄到表格
+    function addRecord(name, id, time) {
+      records.push({ name, id, time });
+      const tbody = document.querySelector("#recordTable tbody");
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${name}</td><td>${id}</td><td>${time}</td>`;
+      tbody.appendChild(tr);
+    }
 
-  // 編號 → 時間排序
-  records.sort((a, b) => {
-    const idCompare = a.employeeId.localeCompare(b.employeeId, undefined, { numeric: true, sensitivity: "base" });
-    if (idCompare !== 0) return idCompare;
-    return a.timestamp - b.timestamp;
-  });
+    // 下載 CSV
+    function downloadCSV() {
+      if (records.length === 0) { alert("目前沒有打卡紀錄！"); return; }
+      let csv = "姓名,工號,打卡時間\n";
+      records.forEach(r => csv += `${r.name},${r.id},${r.time}\n`);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "checkin_records.csv";
+      link.click();
+    }
 
-  localStorage.setItem("checkins", JSON.stringify(records));
-}
+    // 掃描 QR Code 自動打卡
+    function startScanner() {
+      const html5QrCode = new Html5Qrcode("scanner"); // 也可以綁到 video 元素
+      const config = { fps: 10, qrbox: 250 };
+      html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText, decodedResult) => {
+          const parts = decodedText.split(",");
+          if (parts.length >= 2) {
+            const [name, id] = parts;
+            const time = new Date().toLocaleString();
+            addRecord(name.trim(), id.trim(), time);
+            alert(`打卡成功：${name} (${id})`);
+          } else {
+            alert("QR Code 內容格式錯誤！");
+          }
+        },
+        (errorMessage) => {
+          // 可忽略掃描失敗訊息
+        }
+      ).catch(err => console.error("無法啟動掃描器", err));
+    }
 
-// 下載 CSV
-function downloadExcel() {
-  const today = getToday();
-  const records = JSON.parse(localStorage.getItem("checkins") || "[]")
-                    .filter(r => r.date === today);
-
-  if (records.length === 0) {
-    alert("今天沒有打卡紀錄");
-    return;
-  }
-
-  let csv = "Employee ID,Name,Check-in Time\n";
-  records.forEach(r => {
-    csv += `${r.employeeId},${r.name},${r.time}\n`;
-  });
-
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `checkin_records_${today}.csv`;
-  link.click();
-}
-
-// --- QR Code 掃描 ---
-let html5QrCode = new Html5Qrcode("reader");
-let isSubmitting = false;
-
-function onScanSuccess(decodedText) {
-  if (isSubmitting) return;
-  isSubmitting = true;
-
-  // 解析員工編號：只保留純數字
-  const input = (decodedText.match(/\d+/) || [])[0];
-  const employeeName = employeeMap[input];
-
-  if (!input || !employeeName) {
-    statusEl.textContent = "未知員工，請重試";
-    statusEl.className = "status error";
-  } else {
-    // 儲存資料
-    saveToExcel(input);
-
-    // 更新狀態訊息
-    statusEl.textContent = `${employeeName} 打卡完成`;
-    statusEl.className = "status success";
-  }
-
-  // 暫停掃描 3 秒，避免重複打卡
-  html5QrCode.pause();
-  setTimeout(() => {
-    isSubmitting = false;
-    html5QrCode.resume();
-  }, 3000);
-}
-
-// 啟動掃描
-html5QrCode.start(
-  { facingMode: "environment" },
-  { fps: 10, qrbox: 220 },
-  onScanSuccess
-);
-</script>
-
+    // 啟動掃描器
+    startScanner();
+  </script>
 </body>
 </html>

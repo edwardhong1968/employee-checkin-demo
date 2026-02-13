@@ -2,37 +2,26 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>員工打卡 Demo（掃描 QR Code）</title>
+  <title>員工打卡 Demo（手機掃描）</title>
   <style>
-    body { font-family: Arial; text-align: center; margin-top: 30px; }
-    #qrcodes, #scanner { display: flex; flex-wrap: wrap; justify-content: center; margin: 20px auto; }
-    .qr-card { margin: 10px; text-align: center; }
-    input { padding: 5px; margin: 5px; font-size: 16px; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    body { font-family: Arial; text-align: center; margin-top: 20px; }
     table { margin: 20px auto; border-collapse: collapse; width: 70%; }
     th, td { border: 1px solid #ccc; padding: 8px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    video { width: 300px; height: 300px; margin: 20px auto; }
   </style>
 </head>
 <body>
   <h1>員工打卡 Demo</h1>
-  <p>掃描員工 QR Code 或手動輸入姓名與工號打卡</p>
+  <p>請用自己的手機掃描 QR Code 打卡</p>
 
-  <!-- 員工 QR Code 列表 -->
-  <div id="qrcodes"></div>
+  <div id="scanner"></div>
 
-  <!-- 手動打卡輸入 -->
-  <div>
-    <input type="text" id="name" placeholder="姓名">
-    <input type="text" id="id" placeholder="工號">
-    <button onclick="checkInManual()">手動打卡</button>
-  </div>
-
-  <!-- 打卡紀錄表 -->
   <table id="recordTable">
     <thead>
       <tr>
-        <th>姓名</th>
         <th>工號</th>
+        <th>姓名</th>
         <th>打卡時間</th>
       </tr>
     </thead>
@@ -41,63 +30,24 @@
 
   <button onclick="downloadCSV()">下載打卡紀錄</button>
 
-  <!-- QRCode.js -->
-  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
   <!-- html5-qrcode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <script>
-    // 範例員工資料
-    const employees = [
-      { name: "John", id: "001" },
-      { name: "Mary", id: "002" },
-      { name: "Peter", id: "003" }
-    ];
-
-    // 生成員工 QR Code
-    const qrcodesDiv = document.getElementById("qrcodes");
-    employees.forEach(emp => {
-      const div = document.createElement("div");
-      div.className = "qr-card";
-      new QRCode(div, {
-        text: `${emp.name},${emp.id}`, // QR Code 內容：姓名,工號
-        width: 128,
-        height: 128
-      });
-      const label = document.createElement("p");
-      label.innerText = `${emp.name} (${emp.id})`;
-      div.appendChild(label);
-      qrcodesDiv.appendChild(div);
-    });
-
-    // 打卡紀錄
     const records = [];
 
-    // 手動打卡
-    function checkInManual() {
-      const name = document.getElementById("name").value.trim();
-      const id = document.getElementById("id").value.trim();
-      if (!name || !id) { alert("請輸入姓名與工號！"); return; }
-      const time = new Date().toLocaleString();
-      addRecord(name, id, time);
-      document.getElementById("name").value = "";
-      document.getElementById("id").value = "";
-    }
-
-    // 新增紀錄到表格
-    function addRecord(name, id, time) {
-      records.push({ name, id, time });
+    function addRecord(id, name, time) {
+      records.push({ id, name, time });
       const tbody = document.querySelector("#recordTable tbody");
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${name}</td><td>${id}</td><td>${time}</td>`;
+      tr.innerHTML = `<td>${id}</td><td>${name}</td><td>${time}</td>`;
       tbody.appendChild(tr);
     }
 
-    // 下載 CSV
     function downloadCSV() {
       if (records.length === 0) { alert("目前沒有打卡紀錄！"); return; }
-      let csv = "姓名,工號,打卡時間\n";
-      records.forEach(r => csv += `${r.name},${r.id},${r.time}\n`);
+      let csv = "工號,姓名,打卡時間\n";
+      records.forEach(r => csv += `${r.id},${r.name},${r.time}\n`);
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -107,7 +57,7 @@
 
     // 掃描 QR Code 自動打卡
     function startScanner() {
-      const html5QrCode = new Html5Qrcode("scanner"); // 也可以綁到 video 元素
+      const html5QrCode = new Html5Qrcode("scanner");
       const config = { fps: 10, qrbox: 250 };
       html5QrCode.start(
         { facingMode: "environment" },
@@ -115,21 +65,18 @@
         (decodedText, decodedResult) => {
           const parts = decodedText.split(",");
           if (parts.length >= 2) {
-            const [name, id] = parts;
+            const [id, name] = parts;
             const time = new Date().toLocaleString();
-            addRecord(name.trim(), id.trim(), time);
+            addRecord(id.trim(), name.trim(), time);
             alert(`打卡成功：${name} (${id})`);
           } else {
             alert("QR Code 內容格式錯誤！");
           }
         },
-        (errorMessage) => {
-          // 可忽略掃描失敗訊息
-        }
+        (errorMessage) => { }
       ).catch(err => console.error("無法啟動掃描器", err));
     }
 
-    // 啟動掃描器
     startScanner();
   </script>
 </body>
